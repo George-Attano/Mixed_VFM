@@ -40,7 +40,7 @@
 - `.npz`，默认取 key=`depth`
 - 常见图片格式，如 `.png` / `.tif`
 
-如果你的 PNG 深度是毫米单位，可以把配置里的 `depth_scale` 设成 `0.001`。
+如果 PNG 深度以毫米为单位，可将配置中的 `depth_scale` 设为 `0.001`。
 
 ## 2. 训练
 
@@ -74,4 +74,4 @@ torchrun --nproc_per_node=4 train_fusion_depth.py --config configs/fusion_depth_
 - 输入图像会统一 resize 到配置中的 `image_size`
 - 输出监督是逐帧 metric depth
 
-如果你后续想接入更贴近自动驾驶数据的裁剪、增广、或者更复杂的 temporal sampler，可以直接在 [fusion_depth/data.py](/Users/jiyuzhou/Work/Mixed_VFM/fusion_depth/data.py) 上继续扩展。
+如需接入更贴近自动驾驶数据的裁剪、增广，或更复杂的 temporal sampler，可直接在 [fusion_depth/data.py](/Users/jiyuzhou/Work/Mixed_VFM/fusion_depth/data.py) 上继续扩展。
