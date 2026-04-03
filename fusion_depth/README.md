@@ -1,14 +1,12 @@
 # Fusion Depth Training
 
-这套代码用于训练一个 `VGGT + DA3 Metric Large` 的融合深度模型：
-
 - `VGGT` 提供多帧聚合特征
 - `DA3 Metric Large` 提供逐帧单目特征和单目深度先验
-- `fusion head` 融合两路 feature 和两路 depth prior，输出所有帧的 metric depth
+- `fusion head` 融合两路 feature，输出所有帧的 metric depth
 
 ## 1. 数据格式
 
-推荐使用 manifest JSON。每个 item 支持两种形式：
+### 非obs数据 - data.py
 
 1. 序列形式
 
@@ -42,6 +40,10 @@
 
 如果 PNG 深度以毫米为单位，可将配置中的 `depth_scale` 设为 `0.001`。
 
+### obs数据 - obs_data.py
+
+先筛目标相机，再聚合scene后筛连续帧
+
 ## 2. 训练
 
 单卡：
@@ -56,7 +58,7 @@ python train_fusion_depth.py --config configs/fusion_depth_example.yaml
 torchrun --nproc_per_node=4 train_fusion_depth.py --config configs/fusion_depth_example.yaml
 ```
 
-## 3. 功能
+## 3. 支持
 
 - 多 GPU DDP
 - AMP 混合精度
@@ -68,10 +70,8 @@ torchrun --nproc_per_node=4 train_fusion_depth.py --config configs/fusion_depth_
 
 `RGB | GT | Fusion Pred | DA3 Pred | VGGT Pred`
 
-## 4. 默认假设
+## 4. 注意
 
 - 当前训练不使用相机参数、ray head 或其他几何分支
 - 输入图像会统一 resize 到配置中的 `image_size`
 - 输出监督是逐帧 metric depth
-
-如需接入更贴近自动驾驶数据的裁剪、增广，或更复杂的 temporal sampler，可直接在 [fusion_depth/data.py](/Users/jiyuzhou/Work/Mixed_VFM/fusion_depth/data.py) 上继续扩展。
