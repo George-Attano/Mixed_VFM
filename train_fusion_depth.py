@@ -449,6 +449,12 @@ def main() -> None:
 
             reduced_loss = reduce_mean(loss_dict["loss"].detach(), distributed)
 
+            if step % log_every_steps == 0:
+                reduced_loss_dict = {
+                    key: reduce_mean(loss_dict[key].detach(), distributed)
+                    for key in sorted(loss_dict.keys())
+                }
+
             if step % log_every_steps == 0 and is_main_process(rank):
                 elapsed = time.time() - start_time
                 lr = scheduler.get_last_lr()[0]
@@ -463,8 +469,8 @@ def main() -> None:
                 )
                 writer.add_scalar("train/loss", reduced_loss.item(), step)
                 writer.add_scalar("train/lr", lr, step)
-                for key, value in loss_dict.items():
-                    writer.add_scalar(f"train/{key}", reduce_mean(value.detach(), distributed).item(), step)
+                for key, value in reduced_loss_dict.items():
+                    writer.add_scalar(f"train/{key}", value.item(), step)
 
             if step % vis_every_steps == 0:
                 barrier_if_needed(distributed)
