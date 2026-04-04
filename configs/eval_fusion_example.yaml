@@ -1,0 +1,44 @@
+seed: 42
+output_dir: outputs/fusion_eval
+
+data:
+  eval:
+    _target_: fusion_depth.data.SequenceDepthDataset
+    manifest_path: /path/to/val_manifest.json
+    image_size: [518, 518]
+    sequence_length: 6
+    sequence_stride: 6
+    depth_scale: 1.0
+    npz_key: depth
+    random_horizontal_flip: false
+    max_samples: null
+
+model:
+  img_size: 518
+  vggt_checkpoint: /path/to/vggt_1b_checkpoint.pt
+  da3_checkpoint: /path/to/da3metric_large_checkpoint.pth
+  da3_config: Depth-Anything-3/src/depth_anything_3/configs/da3metric-large.yaml
+  feature_dim: 128
+  fusion_hidden_dim: 192
+  strict_load: false
+  freeze_vggt_aggregator: false
+  freeze_vggt_depth_head: false
+  freeze_da3_backbone: false
+  freeze_da3_head: false
+
+loss:
+  min_depth: 1.0e-3
+  max_depth: 200.0
+
+eval:
+  checkpoint_path: outputs/fusion_train_simple/checkpoints/latest.pt
+  batch_size: 1
+  num_workers: 2
+  ddp_timeout_minutes: 180
+  amp: true
+  amp_dtype: bfloat16
+  max_batches: null
+  min_valid_pixels: 64
+  save_visualizations: true
+  max_visualizations: 20
+  max_visualization_frames: 6
