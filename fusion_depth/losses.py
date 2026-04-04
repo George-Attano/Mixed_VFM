@@ -6,6 +6,25 @@ import torch
 import torch.nn as nn
 
 
+def _canonicalize_depth_tensor(tensor: torch.Tensor, name: str) -> torch.Tensor:
+    if tensor.ndim == 5:
+        if tensor.shape[2] == 1:
+            tensor = tensor[:, :, 0]
+        elif tensor.shape[-1] == 1:
+            tensor = tensor[..., 0]
+        else:
+            raise ValueError(
+                f"{name} must have shape [B, S, H, W] or a singleton channel variant; got {tuple(tensor.shape)}."
+            )
+    elif tensor.ndim == 3:
+        tensor = tensor.unsqueeze(0)
+    elif tensor.ndim != 4:
+        raise ValueError(
+            f"{name} must have shape [B, S, H, W] or a singleton channel variant; got {tuple(tensor.shape)}."
+        )
+    return tensor
+
+
 def _masked_mean(values: torch.Tensor, mask: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
     values = values * mask
     return values.sum() / mask.sum().clamp_min(eps)
@@ -86,6 +105,15 @@ class FusionDepthLoss(nn.Module):
         target: torch.Tensor,
         mask: torch.Tensor,
     ) -> Dict[str, torch.Tensor]:
+        pred = _canonicalize_depth_tensor(pred, "pred")
+        target = _canonicalize_depth_tensor(target, "target")
+        mask = _canonicalize_depth_tensor(mask, "mask").bool()
+        if pred.shape != target.shape or pred.shape != mask.shape:
+            raise ValueError(
+                "pred, target, and mask must have the same canonicalized shape. "
+                f"Got pred={tuple(pred.shape)}, target={tuple(target.shape)}, mask={tuple(mask.shape)}."
+            )
+
         valid = mask & torch.isfinite(target)
         valid = valid & (target >= self.min_depth) & (target <= self.max_depth)
         valid_f = valid.float()
@@ -129,4 +157,3 @@ class FusionDepthLoss(nn.Module):
 
         logs["loss"] = total
         return logs
-

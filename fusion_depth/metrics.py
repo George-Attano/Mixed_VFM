@@ -16,6 +16,25 @@ METRIC_NAMES = (
 )
 
 
+def _canonicalize_depth_tensor(tensor: torch.Tensor, name: str) -> torch.Tensor:
+    if tensor.ndim == 5:
+        if tensor.shape[2] == 1:
+            tensor = tensor[:, :, 0]
+        elif tensor.shape[-1] == 1:
+            tensor = tensor[..., 0]
+        else:
+            raise ValueError(
+                f"{name} must have shape [B, S, H, W] or a singleton channel variant; got {tuple(tensor.shape)}."
+            )
+    elif tensor.ndim == 3:
+        tensor = tensor.unsqueeze(0)
+    elif tensor.ndim != 4:
+        raise ValueError(
+            f"{name} must have shape [B, S, H, W] or a singleton channel variant; got {tuple(tensor.shape)}."
+        )
+    return tensor
+
+
 def compute_depth_metrics(
     pred: torch.Tensor,
     target: torch.Tensor,
@@ -24,6 +43,15 @@ def compute_depth_metrics(
     max_depth: float = 200.0,
     min_valid_pixels: int = 64,
 ) -> torch.Tensor:
+    pred = _canonicalize_depth_tensor(pred, "pred")
+    target = _canonicalize_depth_tensor(target, "target")
+    valid_mask = _canonicalize_depth_tensor(valid_mask, "valid_mask").bool()
+    if pred.shape != target.shape or pred.shape != valid_mask.shape:
+        raise ValueError(
+            "pred, target, and valid_mask must have the same canonicalized shape. "
+            f"Got pred={tuple(pred.shape)}, target={tuple(target.shape)}, valid_mask={tuple(valid_mask.shape)}."
+        )
+
     pred = pred.clamp(min_depth, max_depth)
     target = target.clamp(min_depth, max_depth)
     valid_mask = valid_mask & torch.isfinite(pred) & torch.isfinite(target)
@@ -64,4 +92,3 @@ def tensor_to_metric_dict(metric_tensor: torch.Tensor) -> Dict[str, float]:
         name: (metric_tensor[idx] / count).item()
         for idx, name in enumerate(METRIC_NAMES)
     }
-
